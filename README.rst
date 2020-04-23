@@ -1,6 +1,8 @@
 matrixmultiply
 ==============
 
+![rsgx](https://github.com/sammyne/matrixmultiply/workflows/rsgx/badge.svg?branch=rsgx1.1.1)
+
 General matrix multiplication for f32, f64 matrices. Operates on matrices with
 general layout (they can use arbitrary row and column stride).
 
