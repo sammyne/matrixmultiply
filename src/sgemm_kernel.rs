@@ -6,17 +6,17 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use archparam;
-use kernel::GemmKernel;
-use kernel::GemmSelect;
-use kernel::{U4, U8};
+use crate::archparam;
+use crate::kernel::GemmKernel;
+use crate::kernel::GemmSelect;
+use crate::kernel::{U4, U8};
 
-#[cfg(target_arch = "x86")]
-use std::arch::x86::*;
-#[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::*;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-use x86::{AvxMulAdd, FusedMulAdd, SMultiplyAdd};
+use crate::x86::{AvxMulAdd, FusedMulAdd, SMultiplyAdd};
+#[cfg(target_arch = "x86")]
+use core::arch::x86::*;
+#[cfg(target_arch = "x86_64")]
+use core::arch::x86_64::*;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 struct KernelAvx;
@@ -58,7 +58,8 @@ macro_rules! loop_m {
         loop8!($i, $e)
     };
 }
-#[cfg(test)]
+//#[cfg(test)]
+#[cfg(feature = "with-testing")]
 macro_rules! loop_n {
     ($j:ident, $e:expr) => {
         loop8!($j, $e)
@@ -613,10 +614,28 @@ unsafe fn at(ptr: *const T, i: usize) -> T {
     *ptr.offset(i as isize)
 }
 
-#[cfg(test)]
-mod tests {
+//#[cfg(test)]
+#[cfg(feature = "with-testing")]
+pub mod tests {
+    use std::prelude::v1::*;
+
+    use testing::*;
+
+    pub fn do_rsgx_tests() -> usize {
+        use test_arch_kernels::{avx, ensure_target_features_tested, fma, sse2};
+
+        run_tests!(
+            avx,
+            ensure_target_features_tested,
+            fma,
+            sse2,
+            test_kernel_fallback_impl,
+            test_loop_m_n
+        )
+    }
+
     use super::*;
-    use aligned_alloc::Alloc;
+    use crate::aligned_alloc::Alloc;
 
     fn aligned_alloc<K>(elt: K::Elem, n: usize) -> Alloc<K::Elem>
     where
@@ -649,13 +668,13 @@ mod tests {
         assert_eq!(&a[..], &c[..a.len()]);
     }
 
-    #[test]
+    //#[test]
     fn test_kernel_fallback_impl() {
         test_a_kernel::<KernelFallback>("kernel");
     }
 
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    #[test]
+    //#[test]
     fn test_loop_m_n() {
         let mut m = [[0; KernelAvx::NR]; KernelAvx::MR];
         loop_m!(i, loop_n!(j, m[i][j] += 1));
@@ -673,8 +692,8 @@ mod tests {
         macro_rules! test_arch_kernels_x86 {
             ($($feature_name:tt, $name:ident, $kernel_ty:ty),*) => {
                 $(
-                #[test]
-                fn $name() {
+                //#[test]
+                pub fn $name() {
                     if is_x86_feature_detected_!($feature_name) {
                         test_a_kernel::<$kernel_ty>(stringify!($name));
                     } else {
@@ -691,8 +710,8 @@ mod tests {
             "sse2", sse2, KernelSse2
         }
 
-        #[test]
-        fn ensure_target_features_tested() {
+        //#[test]
+        pub fn ensure_target_features_tested() {
             // If enabled, this test ensures that the requested feature actually
             // was enabled on this configuration, so that it was tested.
             let should_ensure_feature =

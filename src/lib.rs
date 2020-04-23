@@ -64,6 +64,10 @@
 //! matrix is distinct.
 
 #![doc(html_root_url = "https://docs.rs/matrixmultiply/0.2/")]
+#![no_std]
+
+#[macro_use]
+extern crate sgx_tstd as std;
 
 extern crate rawpointer;
 
@@ -86,3 +90,6 @@ mod sgemm_kernel;
 
 pub use gemm::dgemm;
 pub use gemm::sgemm;
+
+#[cfg(feature = "with-testing")]
+pub mod tests;
