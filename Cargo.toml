@@ -18,6 +18,8 @@ categories = ["science"]
 
 exclude = ["docs/*"]
 
+edition = "2018"
+
 [lib]
 bench = false
 

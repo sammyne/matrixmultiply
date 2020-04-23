@@ -17,12 +17,10 @@ macro_rules! dprint {
 macro_rules! debug {
     ($e:expr) => {
         $e;
-    }
+    };
 }
 
 #[cfg(not(feature = "use_debug"))]
 macro_rules! debug {
-    ($e:expr) => {
-    }
+    ($e:expr) => {};
 }
-

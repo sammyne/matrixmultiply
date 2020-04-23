@@ -5,16 +5,16 @@
 // <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
-//! 
+//!
 //! General matrix multiplication for f32, f64 matrices. Operates on matrices
 //! with general layout (they can use arbitrary row and column stride).
-//! 
+//!
 //! This crate uses the same macro/microkernel approach to matrix multiplication as
 //! the [BLIS][bl] project.
-//! 
+//!
 //! We presently provide a few good microkernels, portable and for x86-64, and
 //! only one operation: the general matrix-matrix multiplication (“gemm”).
-//! 
+//!
 //! [bl]: https://github.com/flame/blis
 //!
 //! ## Matrix Representation
@@ -67,20 +67,22 @@
 
 extern crate rawpointer;
 
-#[macro_use] mod debugmacros;
-#[macro_use] mod loopmacros;
+#[macro_use]
+mod debugmacros;
+#[macro_use]
+mod loopmacros;
 mod archparam;
-mod kernel;
 mod gemm;
+mod kernel;
 
-mod util;
 mod aligned_alloc;
+mod util;
 
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 #[macro_use]
 mod x86;
-mod sgemm_kernel;
 mod dgemm_kernel;
+mod sgemm_kernel;
 
-pub use gemm::sgemm;
 pub use gemm::dgemm;
+pub use gemm::sgemm;

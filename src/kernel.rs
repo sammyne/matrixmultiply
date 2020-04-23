@@ -56,35 +56,50 @@ pub trait GemmKernel {
         a: *const Self::Elem,
         b: *const Self::Elem,
         beta: Self::Elem,
-        c: *mut Self::Elem, rsc: isize, csc: isize);
+        c: *mut Self::Elem,
+        rsc: isize,
+        csc: isize,
+    );
 }
 
-pub trait Element : Copy + AddAssign + MulAssign + Send + Sync {
+pub trait Element: Copy + AddAssign + MulAssign + Send + Sync {
     fn zero() -> Self;
     fn one() -> Self;
     fn is_zero(&self) -> bool;
 }
 
 impl Element for f32 {
-    fn zero() -> Self { 0. }
-    fn one() -> Self { 1. }
-    fn is_zero(&self) -> bool { *self == 0. }
+    fn zero() -> Self {
+        0.
+    }
+    fn one() -> Self {
+        1.
+    }
+    fn is_zero(&self) -> bool {
+        *self == 0.
+    }
 }
 
 impl Element for f64 {
-    fn zero() -> Self { 0. }
-    fn one() -> Self { 1. }
-    fn is_zero(&self) -> bool { *self == 0. }
+    fn zero() -> Self {
+        0.
+    }
+    fn one() -> Self {
+        1.
+    }
+    fn is_zero(&self) -> bool {
+        *self == 0.
+    }
 }
 
 /// Kernel selector
 pub(crate) trait GemmSelect<T> {
     /// Call `select` with the selected kernel for this configuration
     fn select<K>(self, kernel: K)
-        where K: GemmKernel<Elem=T>,
-              T: Element;
+    where
+        K: GemmKernel<Elem = T>,
+        T: Element;
 }
-
 
 pub trait ConstNum {
     const VALUE: usize;
@@ -93,5 +108,9 @@ pub trait ConstNum {
 pub struct U4;
 pub struct U8;
 
-impl ConstNum for U4 { const VALUE: usize = 4; }
-impl ConstNum for U8 { const VALUE: usize = 8; }
+impl ConstNum for U4 {
+    const VALUE: usize = 4;
+}
+impl ConstNum for U8 {
+    const VALUE: usize = 8;
+}

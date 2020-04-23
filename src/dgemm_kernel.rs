@@ -6,23 +6,23 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use archparam;
 use kernel::GemmKernel;
 use kernel::GemmSelect;
 use kernel::{U4, U8};
-use archparam;
 
-#[cfg(target_arch="x86")]
+#[cfg(target_arch = "x86")]
 use std::arch::x86::*;
-#[cfg(target_arch="x86_64")]
+#[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
-use x86::{FusedMulAdd, AvxMulAdd, DMultiplyAdd};
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+use x86::{AvxMulAdd, DMultiplyAdd, FusedMulAdd};
 
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 struct KernelAvx;
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 struct KernelFma;
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 struct KernelSse2;
 struct KernelFallback;
 
@@ -34,9 +34,12 @@ type T = f64;
 /// This function is called one or more times during a whole program's
 /// execution, it may be called for each gemm kernel invocation or fewer times.
 #[inline]
-pub(crate) fn detect<G>(selector: G) where G: GemmSelect<T> {
+pub(crate) fn detect<G>(selector: G)
+where
+    G: GemmSelect<T>,
+{
     // dispatch to specific compiled versions
-    #[cfg(any(target_arch="x86", target_arch="x86_64"))]
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     {
         if is_x86_feature_detected_!("fma") {
             return selector.select(KernelFma);
@@ -49,13 +52,14 @@ pub(crate) fn detect<G>(selector: G) where G: GemmSelect<T> {
     return selector.select(KernelFallback);
 }
 
-
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 macro_rules! loop_m {
-    ($i:ident, $e:expr) => { loop8!($i, $e) };
+    ($i:ident, $e:expr) => {
+        loop8!($i, $e)
+    };
 }
 
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 impl GemmKernel for KernelAvx {
     type Elem = T;
 
@@ -63,17 +67,27 @@ impl GemmKernel for KernelAvx {
     type NRTy = U4;
 
     #[inline(always)]
-    fn align_to() -> usize { 32 }
+    fn align_to() -> usize {
+        32
+    }
 
     #[inline(always)]
-    fn always_masked() -> bool { false }
+    fn always_masked() -> bool {
+        false
+    }
 
     #[inline(always)]
-    fn nc() -> usize { archparam::D_NC }
+    fn nc() -> usize {
+        archparam::D_NC
+    }
     #[inline(always)]
-    fn kc() -> usize { archparam::D_KC }
+    fn kc() -> usize {
+        archparam::D_KC
+    }
     #[inline(always)]
-    fn mc() -> usize { archparam::D_MC }
+    fn mc() -> usize {
+        archparam::D_MC
+    }
 
     #[inline(always)]
     unsafe fn kernel(
@@ -84,13 +98,13 @@ impl GemmKernel for KernelAvx {
         beta: T,
         c: *mut T,
         rsc: isize,
-        csc: isize)
-    {
+        csc: isize,
+    ) {
         kernel_target_avx(k, alpha, a, b, beta, c, rsc, csc)
     }
 }
 
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 impl GemmKernel for KernelFma {
     type Elem = T;
 
@@ -98,17 +112,27 @@ impl GemmKernel for KernelFma {
     type NRTy = <KernelAvx as GemmKernel>::NRTy;
 
     #[inline(always)]
-    fn align_to() -> usize { KernelAvx::align_to() }
+    fn align_to() -> usize {
+        KernelAvx::align_to()
+    }
 
     #[inline(always)]
-    fn always_masked() -> bool { KernelAvx::always_masked() }
+    fn always_masked() -> bool {
+        KernelAvx::always_masked()
+    }
 
     #[inline(always)]
-    fn nc() -> usize { archparam::D_NC }
+    fn nc() -> usize {
+        archparam::D_NC
+    }
     #[inline(always)]
-    fn kc() -> usize { archparam::D_KC }
+    fn kc() -> usize {
+        archparam::D_KC
+    }
     #[inline(always)]
-    fn mc() -> usize { archparam::D_MC }
+    fn mc() -> usize {
+        archparam::D_MC
+    }
 
     #[inline(always)]
     unsafe fn kernel(
@@ -119,13 +143,13 @@ impl GemmKernel for KernelFma {
         beta: T,
         c: *mut T,
         rsc: isize,
-        csc: isize)
-    {
+        csc: isize,
+    ) {
         kernel_target_fma(k, alpha, a, b, beta, c, rsc, csc)
     }
 }
 
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 impl GemmKernel for KernelSse2 {
     type Elem = T;
 
@@ -133,17 +157,27 @@ impl GemmKernel for KernelSse2 {
     type NRTy = U4;
 
     #[inline(always)]
-    fn align_to() -> usize { 16 }
+    fn align_to() -> usize {
+        16
+    }
 
     #[inline(always)]
-    fn always_masked() -> bool { true }
+    fn always_masked() -> bool {
+        true
+    }
 
     #[inline(always)]
-    fn nc() -> usize { archparam::D_NC }
+    fn nc() -> usize {
+        archparam::D_NC
+    }
     #[inline(always)]
-    fn kc() -> usize { archparam::D_KC }
+    fn kc() -> usize {
+        archparam::D_KC
+    }
     #[inline(always)]
-    fn mc() -> usize { archparam::D_MC }
+    fn mc() -> usize {
+        archparam::D_MC
+    }
 
     #[inline(always)]
     unsafe fn kernel(
@@ -154,8 +188,8 @@ impl GemmKernel for KernelSse2 {
         beta: T,
         c: *mut T,
         rsc: isize,
-        csc: isize)
-    {
+        csc: isize,
+    ) {
         kernel_target_sse2(k, alpha, a, b, beta, c, rsc, csc)
     }
 }
@@ -167,17 +201,27 @@ impl GemmKernel for KernelFallback {
     type NRTy = U4;
 
     #[inline(always)]
-    fn align_to() -> usize { 0 }
+    fn align_to() -> usize {
+        0
+    }
 
     #[inline(always)]
-    fn always_masked() -> bool { true }
+    fn always_masked() -> bool {
+        true
+    }
 
     #[inline(always)]
-    fn nc() -> usize { archparam::D_NC }
+    fn nc() -> usize {
+        archparam::D_NC
+    }
     #[inline(always)]
-    fn kc() -> usize { archparam::D_KC }
+    fn kc() -> usize {
+        archparam::D_KC
+    }
     #[inline(always)]
-    fn mc() -> usize { archparam::D_MC }
+    fn mc() -> usize {
+        archparam::D_MC
+    }
 
     #[inline(always)]
     unsafe fn kernel(
@@ -188,44 +232,73 @@ impl GemmKernel for KernelFallback {
         beta: T,
         c: *mut T,
         rsc: isize,
-        csc: isize)
-    {
+        csc: isize,
+    ) {
         kernel_fallback_impl(k, alpha, a, b, beta, c, rsc, csc)
     }
 }
 
 // no inline for unmasked kernels
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
-#[target_feature(enable="fma")]
-unsafe fn kernel_target_fma(k: usize, alpha: T, a: *const T, b: *const T,
-                            beta: T, c: *mut T, rsc: isize, csc: isize)
-{
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "fma")]
+unsafe fn kernel_target_fma(
+    k: usize,
+    alpha: T,
+    a: *const T,
+    b: *const T,
+    beta: T,
+    c: *mut T,
+    rsc: isize,
+    csc: isize,
+) {
     kernel_x86_avx::<FusedMulAdd>(k, alpha, a, b, beta, c, rsc, csc)
 }
 
 // no inline for unmasked kernels
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
-#[target_feature(enable="avx")]
-unsafe fn kernel_target_avx(k: usize, alpha: T, a: *const T, b: *const T,
-                            beta: T, c: *mut T, rsc: isize, csc: isize)
-{
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx")]
+unsafe fn kernel_target_avx(
+    k: usize,
+    alpha: T,
+    a: *const T,
+    b: *const T,
+    beta: T,
+    c: *mut T,
+    rsc: isize,
+    csc: isize,
+) {
     kernel_x86_avx::<AvxMulAdd>(k, alpha, a, b, beta, c, rsc, csc)
 }
 
 #[inline]
-#[target_feature(enable="sse2")]
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
-unsafe fn kernel_target_sse2(k: usize, alpha: T, a: *const T, b: *const T,
-                                 beta: T, c: *mut T, rsc: isize, csc: isize)
-{
+#[target_feature(enable = "sse2")]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+unsafe fn kernel_target_sse2(
+    k: usize,
+    alpha: T,
+    a: *const T,
+    b: *const T,
+    beta: T,
+    c: *mut T,
+    rsc: isize,
+    csc: isize,
+) {
     kernel_fallback_impl(k, alpha, a, b, beta, c, rsc, csc)
 }
 
 #[inline(always)]
-#[cfg(any(target_arch="x86", target_arch="x86_64"))]
-unsafe fn kernel_x86_avx<MA>(k: usize, alpha: T, a: *const T, b: *const T,
-                             beta: T, c: *mut T, rsc: isize, csc: isize)
-    where MA: DMultiplyAdd
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+unsafe fn kernel_x86_avx<MA>(
+    k: usize,
+    alpha: T,
+    a: *const T,
+    b: *const T,
+    beta: T,
+    c: *mut T,
+    rsc: isize,
+    csc: isize,
+) where
+    MA: DMultiplyAdd,
 {
     const MR: usize = KernelAvx::MR;
     const NR: usize = KernelAvx::NR;
@@ -551,54 +624,30 @@ unsafe fn kernel_x86_avx<MA>(k: usize, alpha: T, a: *const T, b: *const T,
         // a3 b0 | a3 b1 | a3 b2 | a3 b3
 
         // Scheme b), step 1.0
-        let a0b0_a0b1_a0b2_a0b3 = _mm256_permute2f128_pd(
-            a0b0_a0b1_a2b2_a2b3,
-            a0b2_a0b3_a2b0_a2b1,
-            0x20
-        );
+        let a0b0_a0b1_a0b2_a0b3 =
+            _mm256_permute2f128_pd(a0b0_a0b1_a2b2_a2b3, a0b2_a0b3_a2b0_a2b1, 0x20);
         // Scheme b), step 1.1
-        let a2b0_a2b1_a2b2_a2b3 = _mm256_permute2f128_pd(
-            a0b0_a0b1_a2b2_a2b3,
-            a0b2_a0b3_a2b0_a2b1,
-            0x13
-        );
+        let a2b0_a2b1_a2b2_a2b3 =
+            _mm256_permute2f128_pd(a0b0_a0b1_a2b2_a2b3, a0b2_a0b3_a2b0_a2b1, 0x13);
         // Scheme b) step 1.2
-        let a1b0_a1b1_a1b2_a1b3 = _mm256_permute2f128_pd(
-            a1b0_a1b1_a3b2_a3b3,
-            a1b2_a1b3_a3b0_a3b1,
-            0x20
-        );
+        let a1b0_a1b1_a1b2_a1b3 =
+            _mm256_permute2f128_pd(a1b0_a1b1_a3b2_a3b3, a1b2_a1b3_a3b0_a3b1, 0x20);
         // Scheme b) step 1.3
-        let a3b0_a3b1_a3b2_a3b3 = _mm256_permute2f128_pd(
-            a1b0_a1b1_a3b2_a3b3,
-            a1b2_a1b3_a3b0_a3b1,
-            0x13
-        );
+        let a3b0_a3b1_a3b2_a3b3 =
+            _mm256_permute2f128_pd(a1b0_a1b1_a3b2_a3b3, a1b2_a1b3_a3b0_a3b1, 0x13);
 
         // As above, but for ab[4..7]
-        let a4b0_a4b1_a4b2_a4b3 = _mm256_permute2f128_pd(
-            a4b0_a4b1_a6b2_a6b3,
-            a4b2_a4b3_a6b0_a6b1,
-            0x20
-        );
+        let a4b0_a4b1_a4b2_a4b3 =
+            _mm256_permute2f128_pd(a4b0_a4b1_a6b2_a6b3, a4b2_a4b3_a6b0_a6b1, 0x20);
 
-        let a6b0_a6b1_a6b2_a6b3 = _mm256_permute2f128_pd(
-            a4b0_a4b1_a6b2_a6b3,
-            a4b2_a4b3_a6b0_a6b1,
-            0x13
-        );
+        let a6b0_a6b1_a6b2_a6b3 =
+            _mm256_permute2f128_pd(a4b0_a4b1_a6b2_a6b3, a4b2_a4b3_a6b0_a6b1, 0x13);
 
-        let a5b0_a5b1_a5b2_a5b3 = _mm256_permute2f128_pd(
-            a5b0_a5b1_a7b2_a7b3,
-            a5b2_a5b3_a7b0_a7b1,
-            0x20
-        );
+        let a5b0_a5b1_a5b2_a5b3 =
+            _mm256_permute2f128_pd(a5b0_a5b1_a7b2_a7b3, a5b2_a5b3_a7b0_a7b1, 0x20);
 
-        let a7b0_a7b1_a7b2_a7b3 = _mm256_permute2f128_pd(
-            a5b0_a5b1_a7b2_a7b3,
-            a5b2_a5b3_a7b0_a7b1,
-            0x13
-        );
+        let a7b0_a7b1_a7b2_a7b3 =
+            _mm256_permute2f128_pd(a5b0_a5b1_a7b2_a7b3, a5b2_a5b3_a7b0_a7b1, 0x13);
 
         ab[0] = a0b0_a0b1_a0b2_a0b3;
         ab[1] = a1b0_a1b1_a1b2_a1b3;
@@ -637,51 +686,27 @@ unsafe fn kernel_x86_avx<MA>(k: usize, alpha: T, a: *const T, b: *const T,
         let a4b3_a5b3_a6b1_a7b1 = _mm256_blend_pd(ab[7], ab[6], 0b1010);
 
         // Scheme a), step 1.0
-        let a0b0_a1b0_a2b0_a3b0 = _mm256_permute2f128_pd(
-            a0b0_a1b0_a2b2_a3b2,
-            a0b2_a1b2_a2b0_a3b0,
-            0x30
-        );
+        let a0b0_a1b0_a2b0_a3b0 =
+            _mm256_permute2f128_pd(a0b0_a1b0_a2b2_a3b2, a0b2_a1b2_a2b0_a3b0, 0x30);
         // Scheme a), step 1.1
-        let a0b2_a1b2_a2b2_a3b2 = _mm256_permute2f128_pd(
-            a0b0_a1b0_a2b2_a3b2,
-            a0b2_a1b2_a2b0_a3b0,
-            0x12,
-        );
+        let a0b2_a1b2_a2b2_a3b2 =
+            _mm256_permute2f128_pd(a0b0_a1b0_a2b2_a3b2, a0b2_a1b2_a2b0_a3b0, 0x12);
         // Scheme a) step 1.2
-        let a0b1_a1b1_a2b1_a3b1 = _mm256_permute2f128_pd(
-            a0b1_a1b1_a2b3_a3b3,
-            a0b3_a1b3_a2b1_a3b1,
-            0x30
-        );
+        let a0b1_a1b1_a2b1_a3b1 =
+            _mm256_permute2f128_pd(a0b1_a1b1_a2b3_a3b3, a0b3_a1b3_a2b1_a3b1, 0x30);
         // Scheme a) step 1.3
-        let a0b3_a1b3_a2b3_a3b3 = _mm256_permute2f128_pd(
-            a0b1_a1b1_a2b3_a3b3,
-            a0b3_a1b3_a2b1_a3b1,
-            0x12
-        );
+        let a0b3_a1b3_a2b3_a3b3 =
+            _mm256_permute2f128_pd(a0b1_a1b1_a2b3_a3b3, a0b3_a1b3_a2b1_a3b1, 0x12);
 
         // As above, but for ab[4..7]
-        let a4b0_a5b0_a6b0_a7b0 = _mm256_permute2f128_pd(
-            a4b0_a5b0_a6b2_a7b2,
-            a4b2_a5b2_a6b0_a7b0,
-            0x30
-        );
-        let a4b2_a5b2_a6b2_a7b2 = _mm256_permute2f128_pd(
-            a4b0_a5b0_a6b2_a7b2,
-            a4b2_a5b2_a6b0_a7b0,
-            0x12,
-        );
-        let a4b1_a5b1_a6b1_a7b1 = _mm256_permute2f128_pd(
-            a4b1_a5b1_a6b3_a7b3,
-            a4b3_a5b3_a6b1_a7b1,
-            0x30
-        );
-        let a4b3_a5b3_a6b3_a7b3 = _mm256_permute2f128_pd(
-            a4b1_a5b1_a6b3_a7b3,
-            a4b3_a5b3_a6b1_a7b1,
-            0x12
-        );
+        let a4b0_a5b0_a6b0_a7b0 =
+            _mm256_permute2f128_pd(a4b0_a5b0_a6b2_a7b2, a4b2_a5b2_a6b0_a7b0, 0x30);
+        let a4b2_a5b2_a6b2_a7b2 =
+            _mm256_permute2f128_pd(a4b0_a5b0_a6b2_a7b2, a4b2_a5b2_a6b0_a7b0, 0x12);
+        let a4b1_a5b1_a6b1_a7b1 =
+            _mm256_permute2f128_pd(a4b1_a5b1_a6b3_a7b3, a4b3_a5b3_a6b1_a7b1, 0x30);
+        let a4b3_a5b3_a6b3_a7b3 =
+            _mm256_permute2f128_pd(a4b1_a5b1_a6b3_a7b3, a4b3_a5b3_a6b1_a7b1, 0x12);
 
         ab[0] = a0b0_a1b0_a2b0_a3b0;
         ab[1] = a0b1_a1b1_a2b1_a3b1;
@@ -703,8 +728,9 @@ unsafe fn kernel_x86_avx<MA>(k: usize, alpha: T, a: *const T, b: *const T,
     }
 
     macro_rules! c {
-        ($i:expr, $j:expr) =>
-            (c.offset(rsc * $i as isize + csc * $j as isize));
+        ($i:expr, $j:expr) => {
+            c.offset(rsc * $i as isize + csc * $j as isize)
+        };
     }
 
     // C ← α A B + β C
@@ -717,20 +743,16 @@ unsafe fn kernel_x86_avx<MA>(k: usize, alpha: T, a: *const T, b: *const T,
             loop4!(i, cv[i + 4] = _mm256_loadu_pd(c![4, i]));
         } else if csc == 1 {
             loop4!(i, cv[i] = _mm256_loadu_pd(c![i, 0]));
-            loop4!(i, cv[i+4] = _mm256_loadu_pd(c![i+4, 0]));
+            loop4!(i, cv[i + 4] = _mm256_loadu_pd(c![i + 4, 0]));
         } else {
-            loop4!(i, cv[i] = _mm256_setr_pd(
-                    *c![0, i],
-                    *c![1, i],
-                    *c![2, i],
-                    *c![3, i]
-            ));
-            loop4!(i, cv[i + 4] = _mm256_setr_pd(
-                    *c![4, i],
-                    *c![5, i],
-                    *c![6, i],
-                    *c![7, i]
-            ));
+            loop4!(
+                i,
+                cv[i] = _mm256_setr_pd(*c![0, i], *c![1, i], *c![2, i], *c![3, i])
+            );
+            loop4!(
+                i,
+                cv[i + 4] = _mm256_setr_pd(*c![4, i], *c![5, i], *c![6, i], *c![7, i])
+            );
         }
         // Compute β C
         // _mm256_set1_pd and _mm256_broadcast_sd seem to achieve the same thing.
@@ -750,7 +772,7 @@ unsafe fn kernel_x86_avx<MA>(k: usize, alpha: T, a: *const T, b: *const T,
         loop4!(i, _mm256_storeu_pd(c![4, i], cv[i + 4]));
     } else if csc == 1 {
         loop4!(i, _mm256_storeu_pd(c![i, 0], cv[i]));
-        loop4!(i, _mm256_storeu_pd(c![i+4, 0], cv[i + 4]));
+        loop4!(i, _mm256_storeu_pd(c![i + 4, 0], cv[i + 4]));
     } else {
         // Permute to bring each element in the vector to the front and store
         loop4!(i, {
@@ -765,9 +787,9 @@ unsafe fn kernel_x86_avx<MA>(k: usize, alpha: T, a: *const T, b: *const T,
             _mm_storeh_pd(c![3, i], c_hi);
 
             // E.g. c_0_lo = a0b0 | a1b0
-            let c_lo: __m128d = _mm256_extractf128_pd(cv[i+4], 0);
+            let c_lo: __m128d = _mm256_extractf128_pd(cv[i + 4], 0);
             // E.g. c_0_hi = a2b0 | a3b0
-            let c_hi: __m128d = _mm256_extractf128_pd(cv[i+4], 1);
+            let c_hi: __m128d = _mm256_extractf128_pd(cv[i + 4], 1);
 
             _mm_storel_pd(c![4, i], c_lo);
             _mm_storeh_pd(c![5, i], c_lo);
@@ -778,9 +800,16 @@ unsafe fn kernel_x86_avx<MA>(k: usize, alpha: T, a: *const T, b: *const T,
 }
 
 #[inline]
-unsafe fn kernel_fallback_impl(k: usize, alpha: T, a: *const T, b: *const T,
-                                   beta: T, c: *mut T, rsc: isize, csc: isize)
-{
+unsafe fn kernel_fallback_impl(
+    k: usize,
+    alpha: T,
+    a: *const T,
+    b: *const T,
+    beta: T,
+    c: *mut T,
+    rsc: isize,
+    csc: isize,
+) {
     const MR: usize = KernelFallback::MR;
     const NR: usize = KernelFallback::NR;
     let mut ab: [[T; NR]; MR] = [[0.; NR]; MR];
@@ -797,7 +826,9 @@ unsafe fn kernel_fallback_impl(k: usize, alpha: T, a: *const T, b: *const T,
     });
 
     macro_rules! c {
-        ($i:expr, $j:expr) => (c.offset(rsc * $i as isize + csc * $j as isize));
+        ($i:expr, $j:expr) => {
+            c.offset(rsc * $i as isize + csc * $j as isize)
+        };
     }
 
     // set C = α A B
@@ -815,17 +846,16 @@ mod tests {
     use aligned_alloc::Alloc;
 
     fn aligned_alloc<K>(elt: K::Elem, n: usize) -> Alloc<K::Elem>
-        where K: GemmKernel,
-              K::Elem: Copy,
+    where
+        K: GemmKernel,
+        K::Elem: Copy,
     {
-        unsafe {
-            Alloc::new(n, K::align_to()).init_with(elt)
-        }
+        unsafe { Alloc::new(n, K::align_to()).init_with(elt) }
     }
 
     use super::T;
 
-    fn test_a_kernel<K: GemmKernel<Elem=T>>(_name: &str) {
+    fn test_a_kernel<K: GemmKernel<Elem = T>>(_name: &str) {
         const K: usize = 4;
         let mr = K::MR;
         let nr = K::NR;
@@ -852,7 +882,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(target_arch="x86", target_arch="x86_64"))]
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     fn test_loop_m_n() {
         let mut m = [[0; 4]; KernelAvx::MR];
         loop_m!(i, loop4!(j, m[i][j] += 1));
@@ -863,10 +893,10 @@ mod tests {
         }
     }
 
-    #[cfg(any(target_arch="x86", target_arch="x86_64"))]
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     mod test_arch_kernels {
-        use super::test_a_kernel;
         use super::super::*;
+        use super::test_a_kernel;
         macro_rules! test_arch_kernels_x86 {
             ($($feature_name:tt, $name:ident, $kernel_ty:ty),*) => {
                 $(
