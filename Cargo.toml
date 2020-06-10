@@ -41,3 +41,25 @@ itertools = "0.8"
 no-dev-version = true
 tag-name = "{{version}}"
 
+[dependencies.inventory]
+optional    = true
+version     = "0.1.6"
+
+[dependencies.rand]
+git         = "https://github.com/apache/teaclave-sgx-sdk"
+package     = "sgx_rand"
+rev         = "v1.1.2"
+
+[dependencies.sgx_tstd]
+features    = ["thread"]
+git         = "https://github.com/apache/teaclave-sgx-sdk"
+rev         = "v1.1.2"
+
+[dependencies.testing]
+branch      = "rsgx1.1.2"
+git         = "https://github.com/usccommunity/teaclave-testing"
+optional    = true
+
+[features]
+default = []
+with-testing = ["inventory", "testing"]

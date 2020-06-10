@@ -6,17 +6,19 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use archparam;
-use kernel::GemmKernel;
-use kernel::GemmSelect;
-use kernel::{U4, U8};
+use crate::archparam;
+use crate::kernel::GemmKernel;
+use crate::kernel::GemmSelect;
+use crate::kernel::{U4, U8};
 
-#[cfg(target_arch = "x86")]
-use std::arch::x86::*;
-#[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::*;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-use x86::{AvxMulAdd, DMultiplyAdd, FusedMulAdd};
+use crate::x86::{AvxMulAdd, DMultiplyAdd, FusedMulAdd};
+#[cfg(target_arch = "x86")]
+//use std::arch::x86::*;
+use core::arch::x86::*;
+#[cfg(target_arch = "x86_64")]
+//use std::arch::x86_64::*;
+use core::arch::x86_64::*;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 struct KernelAvx;
@@ -840,10 +842,15 @@ unsafe fn at(ptr: *const T, i: usize) -> T {
     *ptr.offset(i as isize)
 }
 
-#[cfg(test)]
+//#[cfg(test)]
+#[cfg(feature = "with-testing")]
 mod tests {
+    use std::prelude::v1::*;
+
+    use testing::test;
+
     use super::*;
-    use aligned_alloc::Alloc;
+    use crate::aligned_alloc::Alloc;
 
     fn aligned_alloc<K>(elt: K::Elem, n: usize) -> Alloc<K::Elem>
     where
@@ -882,7 +889,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    //#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     fn test_loop_m_n() {
         let mut m = [[0; 4]; KernelAvx::MR];
         loop_m!(i, loop4!(j, m[i][j] += 1));
@@ -901,7 +908,7 @@ mod tests {
             ($($feature_name:tt, $name:ident, $kernel_ty:ty),*) => {
                 $(
                 #[test]
-                fn $name() {
+                pub fn $name() {
                     if is_x86_feature_detected_!($feature_name) {
                         test_a_kernel::<$kernel_ty>(stringify!($name));
                     } else {

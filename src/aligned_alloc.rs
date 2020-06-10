@@ -2,9 +2,11 @@ use std::alloc;
 use std::alloc::{handle_alloc_error, Layout};
 use std::{cmp, mem};
 
-#[cfg(test)]
+//#[cfg(test)]
+#[cfg(feature = "with-testing")]
 use std::ops::{Deref, DerefMut};
-#[cfg(test)]
+//#[cfg(test)]
+#[cfg(feature = "with-testing")]
 use std::slice;
 
 pub(crate) struct Alloc<T> {
@@ -33,7 +35,7 @@ impl<T> Alloc<T> {
         }
     }
 
-    #[cfg(test)]
+    //#[cfg(test)]
     pub fn init_with(mut self, elt: T) -> Alloc<T>
     where
         T: Copy,
@@ -60,7 +62,8 @@ impl<T> Drop for Alloc<T> {
     }
 }
 
-#[cfg(test)]
+//#[cfg(test)]
+#[cfg(feature = "with-testing")]
 impl<T> Deref for Alloc<T> {
     type Target = [T];
     fn deref(&self) -> &[T] {
@@ -68,7 +71,8 @@ impl<T> Deref for Alloc<T> {
     }
 }
 
-#[cfg(test)]
+//#[cfg(test)]
+#[cfg(feature = "with-testing")]
 impl<T> DerefMut for Alloc<T> {
     fn deref_mut(&mut self) -> &mut [T] {
         unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
